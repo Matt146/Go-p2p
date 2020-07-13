@@ -1,12 +1,16 @@
 package network
 
 import (
-	"Blockchain/blockchain"
+	"bytes"
+	crand "crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -99,6 +103,31 @@ func MakeNetwork() *Network {
 	return &Network{MyID: []byte(""), MyIP: "", Nodes: make(map[string]Node)}
 }
 
+// SeedRand - This seeds the insecure random number generator
+// with a secure random number
+func SeedRand() {
+	c := 8
+	b := make([]byte, c)
+	_, err := crand.Read(b)
+	if err != nil {
+		os.Exit(-1)
+	}
+	var seed int64
+	buf := bytes.NewBuffer(b)
+	binary.Read(buf, binary.BigEndian, &seed)
+	rand.Seed(seed)
+}
+
+// GenRandBytes - This generates a random selection of bytes of
+// n length
+func GenRandBytes(n int) []byte {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = byte(rand.Intn(127))
+	}
+	return b
+}
+
 // BootstrapNetwork - Call this function after MakeNetwork if
 // you are the first node in the network
 func (net *Network) BootstrapNetwork() {
@@ -110,7 +139,7 @@ func (net *Network) BootstrapNetwork() {
 	fmt.Printf("My IP: %s\n", myIP)
 
 	// Generate a GUID
-	myID := blockchain.GenRandBytes(32)
+	myID := GenRandBytes(32)
 
 	// Assign GUID and IP to my data
 	net.MyID = myID
@@ -120,19 +149,19 @@ func (net *Network) BootstrapNetwork() {
 // SerializeToForm - Serialized a packet to an HTTP form
 func (p *Packet) SerializeToForm() url.Values {
 	fmt.Printf("Protocol version given to packet serializer: %d\n", p.PVersion)
-	fmt.Printf("Serialized version given to packet serializer: %s\n", strconv.FormatInt(int64(p.PVersion), blockchain.Base))
+	fmt.Printf("Serialized version given to packet serializer: %s\n", strconv.FormatInt(int64(p.PVersion), Base))
 	fmt.Printf("Destination ID given to packet serialzier: %v\n", p.DestinationID)
 	fmt.Printf("Serialzied destination ID given to packet serialzier: %s\n", base64.URLEncoding.EncodeToString(p.DestinationID))
 	formValues := url.Values{
-		"PVersion":      {strconv.FormatInt(int64(p.PVersion), blockchain.Base)},
+		"PVersion":      {strconv.FormatInt(int64(p.PVersion), Base)},
 		"Type":          {p.Type},
 		"SourceID":      {base64.URLEncoding.EncodeToString(p.SourceID)},
 		"DestinationID": {base64.URLEncoding.EncodeToString(p.DestinationID)},
 		"SourceIP":      {p.SourceIP},
 		"DestinationIP": {p.DestinationIP},
 		"Data":          {base64.URLEncoding.EncodeToString(p.Data)},
-		"HopLimit":      {strconv.FormatInt(int64(p.HopLimit), blockchain.Base)},
-		"SendType":      {strconv.FormatInt(int64(p.SendType), blockchain.Base)},
+		"HopLimit":      {strconv.FormatInt(int64(p.HopLimit), Base)},
+		"SendType":      {strconv.FormatInt(int64(p.SendType), Base)},
 	}
 
 	return formValues
@@ -154,7 +183,7 @@ func DeserializeFromForm(r *http.Request) (*Packet, error) {
 	}
 
 	// Now, parse the rest of the data out of the HTTP POST parameters
-	version, err := strconv.ParseInt(r.FormValue("PVersion"), blockchain.Base, 32)
+	version, err := strconv.ParseInt(r.FormValue("PVersion"), Base, 32)
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +194,11 @@ func DeserializeFromForm(r *http.Request) (*Packet, error) {
 	}
 	sourceip := r.FormValue("SourceIP")
 	destinationip := r.FormValue("DestinationIP")
-	hoplimit, err := strconv.ParseInt(r.FormValue("HopLimit"), blockchain.Base, 32)
+	hoplimit, err := strconv.ParseInt(r.FormValue("HopLimit"), Base, 32)
 	if err != nil {
 		return nil, err
 	}
-	sendtype, err := strconv.ParseInt(r.FormValue("SendType"), blockchain.Base, 32)
+	sendtype, err := strconv.ParseInt(r.FormValue("SendType"), Base, 32)
 	if err != nil {
 		// this is optional and defaults to singlecast
 		sendtype = int64(PacketSingleCast)

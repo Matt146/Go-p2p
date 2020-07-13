@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Blockchain/network"
+	"Go-p2p/network"
 	"fmt"
 	"net/http"
 	"strconv"

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"Blockchain/network"
+	"Go-p2p/network"
 	"fmt"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/opentracing/opentracing-go/log"
 )
@@ -13,10 +12,11 @@ import (
 var wg sync.WaitGroup
 
 func main() {
+	network.SeedRand()
 	net := network.MakeNetwork()
 	network.InitMSGQueue()
 	net.MyIP = "127.0.0.1" + network.Port
-	net.MyID = blockchain.GenRandBytes(32)
+	net.MyID = network.GenRandBytes(32)
 	http.HandleFunc("/JOIN", net.JoinHandler)
 	http.HandleFunc("/PING", net.PingHandler)
 	http.HandleFunc("/PONG", net.PongHandler)

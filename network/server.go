@@ -1,7 +1,6 @@
 package network
 
 import (
-	"Blockchain/blockchain"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -12,6 +11,8 @@ import (
 
 	elog "github.com/opentracing/opentracing-go/log"
 )
+
+const Base = 10
 
 // RouteIfNeeded - Should be called before doing anything with
 // any packet. Routes the packet again unless if it's not directed
@@ -131,7 +132,7 @@ func (net *Network) JoinHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Handle the packet now
 	// Generate a response
-	netID := blockchain.GenRandBytes(32)
+	netID := GenRandBytes(32)
 	ipParsed := strings.Split(r.RemoteAddr, ":")[0]
 	ipParsed += ":" + r.FormValue("SourceIP")
 	joinresp := &JoinResp{Net: net, ID: netID, IP: ipParsed,
